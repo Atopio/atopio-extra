@@ -2,6 +2,10 @@
 name = "atopio-extra"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+description = "A Rust crate providing extra utilities for surrealdb."
+repository = "https://github.com/Atopio/atopio-extra"
+keywords = ["surrealdb", "database", "utilities"]
 
 [dependencies]
 base64 = "0.22.1"
