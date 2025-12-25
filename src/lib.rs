@@ -2,8 +2,9 @@ pub mod types;
 
 use crate::types::SurrealJWTClaims;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use serde::Serialize;
+use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::{Deserializer, Serialize, de::Error};
 use surrealdb::RecordId;
 
 /// Decodes a JWT payload without any signature or timestamp validation.
@@ -30,23 +31,72 @@ where
     Ok(claims)
 }
 
-/// Serde serializer helper that serializes a `surrealdb::RecordId` as its key string.
+/// Deserializes a SurrealDB `RecordId` from a deserializer, returning its key as a `String`.
 ///
-/// This function is intended to be used with `#[serde(serialize_with = "...")]`
-/// to serialize a `RecordId` into a JSON (or other format) string containing the
-/// record's key (the part after the `:` in `<table>:<id>`).
+/// # Arguments
 ///
-/// # Example
+/// * `deserializer` - The deserializer to extract the `RecordId` from.
 ///
-/// ```rust,no_run
-/// #[derive(serde::Serialize)]
-/// struct Wrapper {
-///     #[serde(serialize_with = "atopio-extra::serialize_record_id")]
-///     id: surrealdb::RecordId,
-/// }
+/// # Returns
 ///
-/// // When serialized, `id` will be represented by its key string, e.g. "alice".
-/// ```
+/// * `Ok(String)` containing the record key if deserialization is successful.
+/// * `Err(D::Error)` if the value is `None` or deserialization fails.
+///
+/// # Errors
+///
+/// Returns an error if the deserialized value is `None`.
+pub fn deserialize_record_id<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<RecordId> = Option::deserialize(deserializer)?;
+    match value {
+        Some(id) => Ok(id.key().to_string()),
+        None => Err(D::Error::custom("RecordId cannot be None")),
+    }
+}
+
+/// Deserializes an optional SurrealDB `RecordId` from a deserializer, returning an
+/// `Option<String>` with the record key when present.
+///
+/// This is intended for optional fields where `null` or missing values should map to
+/// `None` in Rust. When a `RecordId` is present it is converted to its string key.
+///
+/// # Arguments
+///
+/// * `deserializer` - The deserializer to extract the optional `RecordId` from.
+///
+/// # Returns
+///
+/// * `Ok(Some(String))` containing the record key when a `RecordId` is present.
+/// * `Ok(None)` if the input is `null` or missing.
+/// * `Err(D::Error)` if deserialization fails for other reasons.
+pub fn deserialize_record_id_option<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<RecordId> = Option::deserialize(deserializer)?;
+
+    match value {
+        Some(id) => Ok(Some(id.key().to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Serializes a SurrealDB `RecordId` as a JSON string containing its key.
+///
+/// Use this with Serde `#[serde(serialize_with = "serialize_record_id")]` on
+/// fields of type `RecordId` when you want the serialized representation to be
+/// the record's key string rather than the full `RecordId` structure.
+///
+/// # Arguments
+///
+/// * `id` - The `RecordId` reference to serialize.
+/// * `serializer` - The Serde serializer to write into.
+///
+/// # Returns
+///
+/// Returns the serializer's `Ok` result on success or `S::Error` on failure.
 pub fn serialize_record_id<S>(id: &RecordId, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -54,23 +104,20 @@ where
     serializer.serialize_str(&id.key().to_string())
 }
 
-/// Serde serializer helper that serializes an `Option<surrealdb::RecordId>` as its key string or `null`.
+/// Serializes an optional `RecordId` as a JSON string when present, or `null` when `None`.
 ///
-/// This function is intended to be used with `#[serde(serialize_with = "...")]`
-/// to serialize an `Option<RecordId>` into a string containing the record's
-/// key (the part after the `:` in `<table>:<id>`), or `null` when `None`.
+/// Use this with Serde `#[serde(serialize_with = "serialize_record_id_option")]` on
+/// fields of type `Option<RecordId>` when you want `Some(id)` to be represented by the
+/// record key string and `None` to be represented by JSON `null`.
 ///
-/// # Example
+/// # Arguments
 ///
-/// ```rust,no_run
-/// #[derive(serde::Serialize)]
-/// struct Wrapper {
-///     #[serde(serialize_with = "atopio::serialize_record_id_option")]
-///     id: Option<surrealdb::RecordId>,
-/// }
+/// * `id` - The optional `RecordId` reference to serialize.
+/// * `serializer` - The Serde serializer to write into.
 ///
-/// // `Some(<table>:alice)` -> "alice"; `None` -> null.
-/// ```
+/// # Returns
+///
+/// Returns the serializer's `Ok` result on success or `S::Error` on failure.
 pub fn serialize_record_id_option<S>(
     id: &Option<RecordId>,
     serializer: S,
