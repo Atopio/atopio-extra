@@ -1,31 +1,32 @@
 use atopio_extra::{
-    deserialize_record_id, deserialize_record_id_option, serialize_record_id,
-    serialize_record_id_option,
+    deserialize_record_id_naked, deserialize_record_id_naked_option, serialize_record_id_naked,
+    serialize_record_id_naked_option,
 };
+
 use serde::{Deserialize, Serialize};
 use surrealdb::RecordId;
 
 #[derive(Serialize)]
 struct SerRecord {
-    #[serde(serialize_with = "serialize_record_id")]
+    #[serde(serialize_with = "serialize_record_id_naked")]
     id: RecordId,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 struct DeRecord {
-    #[serde(deserialize_with = "deserialize_record_id")]
+    #[serde(deserialize_with = "deserialize_record_id_naked")]
     id: String,
 }
 
 #[derive(Serialize)]
 struct SerOpt {
-    #[serde(serialize_with = "serialize_record_id_option")]
+    #[serde(serialize_with = "serialize_record_id_naked_option")]
     id: Option<RecordId>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 struct DeOpt {
-    #[serde(deserialize_with = "deserialize_record_id_option")]
+    #[serde(deserialize_with = "deserialize_record_id_naked_option")]
     id: Option<String>,
 }
 

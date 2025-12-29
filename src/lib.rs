@@ -31,7 +31,7 @@ where
     Ok(claims)
 }
 
-/// Deserializes a SurrealDB `RecordId` from a deserializer, returning its key as a `String`.
+/// Deserializes a SurrealDB `RecordId` from a deserializer, returning its key as a `String` akin to traditional SQL.
 ///
 /// # Arguments
 ///
@@ -45,7 +45,7 @@ where
 /// # Errors
 ///
 /// Returns an error if the deserialized value is `None`.
-pub fn deserialize_record_id<'de, D>(deserializer: D) -> Result<String, D::Error>
+pub fn deserialize_record_id_naked<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -57,7 +57,7 @@ where
 }
 
 /// Deserializes an optional SurrealDB `RecordId` from a deserializer, returning an
-/// `Option<String>` with the record key when present.
+/// `Option<String>` akin to traditional SQL with the record key when present.
 ///
 /// This is intended for optional fields where `null` or missing values should map to
 /// `None` in Rust. When a `RecordId` is present it is converted to its string key.
@@ -71,7 +71,9 @@ where
 /// * `Ok(Some(String))` containing the record key when a `RecordId` is present.
 /// * `Ok(None)` if the input is `null` or missing.
 /// * `Err(D::Error)` if deserialization fails for other reasons.
-pub fn deserialize_record_id_option<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+pub fn deserialize_record_id_naked_option<'de, D>(
+    deserializer: D,
+) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -83,7 +85,7 @@ where
     }
 }
 
-/// Serializes a SurrealDB `RecordId` as a JSON string containing its key.
+/// Serializes a SurrealDB `RecordId` as a JSON string as tb:id.
 ///
 /// Use this with Serde `#[serde(serialize_with = "serialize_record_id")]` on
 /// fields of type `RecordId` when you want the serialized representation to be
@@ -101,10 +103,10 @@ pub fn serialize_record_id<S>(id: &RecordId, serializer: S) -> Result<S::Ok, S::
 where
     S: serde::Serializer,
 {
-    serializer.serialize_str(&id.key().to_string())
+    serializer.serialize_str(&id.to_string())
 }
 
-/// Serializes an optional `RecordId` as a JSON string when present, or `null` when `None`.
+/// Serializes an optional `RecordId` as a JSON string as tb:id when present, or `null` when `None`.
 ///
 /// Use this with Serde `#[serde(serialize_with = "serialize_record_id_option")]` on
 /// fields of type `Option<RecordId>` when you want `Some(id)` to be represented by the
@@ -119,6 +121,54 @@ where
 ///
 /// Returns the serializer's `Ok` result on success or `S::Error` on failure.
 pub fn serialize_record_id_option<S>(
+    id: &Option<RecordId>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match id {
+        Some(record_id) => serializer.serialize_str(&record_id.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
+/// Serializes a SurrealDB `RecordId` as a JSON string akin to traditional SQL containing its key.
+///
+/// Use this with Serde `#[serde(serialize_with = "serialize_record_id")]` on
+/// fields of type `RecordId` when you want the serialized representation to be
+/// the record's key string rather than the full `RecordId` structure.
+///
+/// # Arguments
+///
+/// * `id` - The `RecordId` reference to serialize.
+/// * `serializer` - The Serde serializer to write into.
+///
+/// # Returns
+///
+/// Returns the serializer's `Ok` result on success or `S::Error` on failure.
+pub fn serialize_record_id_naked<S>(id: &RecordId, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&id.key().to_string())
+}
+
+/// Serializes an optional `RecordId` as a JSON string akin to traditional SQL when present, or `null` when `None`.
+///
+/// Use this with Serde `#[serde(serialize_with = "serialize_record_id_option")]` on
+/// fields of type `Option<RecordId>` when you want `Some(id)` to be represented by the
+/// record key string and `None` to be represented by JSON `null`.
+///
+/// # Arguments
+///
+/// * `id` - The optional `RecordId` reference to serialize.
+/// * `serializer` - The Serde serializer to write into.
+///
+/// # Returns
+///
+/// Returns the serializer's `Ok` result on success or `S::Error` on failure.
+pub fn serialize_record_id_naked_option<S>(
     id: &Option<RecordId>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
