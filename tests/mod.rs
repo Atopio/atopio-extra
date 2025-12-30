@@ -24,7 +24,7 @@ fn test_record_id_full_serialize_deserialize() -> Result<(), Box<dyn std::error:
     let container = ContainerFull { id: id.clone() };
 
     let s = serde_json::to_string(&container)?;
-    assert_eq!(s, format!("{{\"id\":\"{}\"}}", id.to_string()));
+    assert_eq!(s, format!("{{\"id\":\"{id}\"}}"));
 
     let parsed: ContainerFull = serde_json::from_str(&s)?;
     assert_eq!(parsed.id.to_string(), id.to_string());
