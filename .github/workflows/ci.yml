@@ -39,7 +39,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --verbose
+          args: --locked
 
   formatting:
     runs-on: ubuntu-latest
@@ -58,4 +58,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check --verbose
+          args: --all -- --check
