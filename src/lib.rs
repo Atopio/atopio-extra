@@ -39,17 +39,6 @@ pub mod record_id_full {
     /// This helper is intended for use with `#[serde(with = "...")]` on fields of type
     /// `surrealdb::RecordId`. It serializes the ID to a JSON string using the format produced
     /// by `RecordId::to_string()`, which includes the table and key (for example: `"user:abc123"`).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::str::FromStr;
-    /// # use surrealdb::RecordId;
-    /// # let id = RecordId::from_str("user:abc123").unwrap();
-    /// # let container = (&id,);
-    /// // When used via `#[serde(with = "...")]` on a RecordId field, this will serialize
-    /// // the field as the full id string.
-    /// ```
     pub fn serialize<S>(id: &surrealdb::RecordId, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -68,15 +57,6 @@ pub mod record_id_full {
     ///
     /// Returns a deserialization error if the provided JSON value is not a string or
     /// if the string is not a valid SurrealDB record id.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::str::FromStr;
-    /// # use surrealdb::RecordId;
-    /// # let s = "\"user:abc123\"";
-    /// # let parsed: RecordId = serde_json::from_str(s).unwrap();
-    /// ```
     pub fn deserialize<'de, D>(deserializer: D) -> Result<surrealdb::RecordId, D::Error>
     where
         D: Deserializer<'de>,
@@ -94,25 +74,6 @@ pub mod record_id_naked {
     /// `surrealdb::RecordId`. It serializes only the key portion (the part after the table
     /// separator) as a JSON string — akin to tradtional SQL IDs where only the numeric or
     /// key portion is stored or referenced.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use std::str::FromStr;
-    /// # use surrealdb::RecordId;
-    /// # fn example() {
-    /// #[derive(serde::Serialize)]
-    /// struct S {
-    ///     #[serde(with = "atopio_extra::record_id_naked")]
-    ///     id: surrealdb::RecordId,
-    /// }
-    ///
-    /// let id = RecordId::from_str("user:abc123").unwrap();
-    /// let s = S { id };
-    /// let json = serde_json::to_string(&s).unwrap();
-    /// // The JSON will contain only the naked key, e.g. {"id":"abc123"}
-    /// # }
-    /// ```
     pub fn serialize<S>(id: &surrealdb::RecordId, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
