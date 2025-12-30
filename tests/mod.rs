@@ -68,7 +68,7 @@ fn test_record_id_full_opt_some() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let s = serde_json::to_string(&c)?;
-    assert_eq!(s, format!("{{\"id\":\"{}\"}}", id.to_string()));
+    assert_eq!(s, format!("{{\"id\":\"{id}\"}}"));
 
     let parsed: ContainerFullOpt = serde_json::from_str(&s)?;
     assert!(parsed.id.is_some());
