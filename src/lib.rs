@@ -46,6 +46,25 @@ pub mod record_id_full {
         serializer.serialize_str(&id.to_string())
     }
 
+    /// Serialize an `Option<surrealdb::RecordId>` in the full (table:key) form.
+    ///
+    /// This helper is intended for use with `#[serde(with = "...")]` on fields of type
+    /// `Option<surrealdb::RecordId>`. When the option is `Some`, the contained `RecordId`
+    /// is serialized as the full textual representation produced by `RecordId::to_string()`
+    /// (for example: `"user:abc123"`). When the option is `None`, a JSON `null` is emitted.
+    pub fn serialize_opt<S>(
+        id: &Option<surrealdb::RecordId>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match id {
+            Some(record_id) => serializer.serialize_str(&record_id.to_string()),
+            None => serializer.serialize_none(),
+        }
+    }
+
     /// Deserialize a JSON string into a `surrealdb::RecordId`.
     ///
     /// This is the counterpart to `serialize` and expects the JSON value to be a string
@@ -64,15 +83,40 @@ pub mod record_id_full {
         let s = String::deserialize(deserializer)?;
         surrealdb::RecordId::from_str(&s).map_err(D::Error::custom)
     }
+
+    /// Deserialize an `Option<surrealdb::RecordId>` from the full (table:key) form.
+    ///
+    /// This is the counterpart to `serialize_opt` and expects either a JSON string
+    /// containing the full record id (for example `"user:abc123"`) or `null`.
+    /// If a string is provided, it attempts to parse it with `surrealdb::RecordId::from_str`.
+    /// If parsing fails, the error is converted into a serde deserialization error.
+    ///
+    /// # Errors
+    ///
+    /// Returns a deserialization error if the JSON value is not a string or `null`, or if
+    /// the string is not a valid SurrealDB `RecordId`.
+    pub fn deserialize_opt<'de, D>(deserializer: D) -> Result<Option<surrealdb::RecordId>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt = Option::<String>::deserialize(deserializer)?;
+        match opt {
+            Some(s) => {
+                let record_id = surrealdb::RecordId::from_str(&s).map_err(D::Error::custom)?;
+                Ok(Some(record_id))
+            }
+            None => Ok(None),
+        }
+    }
 }
 
 pub mod record_id_naked {
 
-    /// Serialize the key portion of a `surrealdb::RecordId` (the \"naked\" id).
+    /// Serialize the key portion of a `surrealdb::RecordId` (the "naked" id).
     ///
     /// This helper is intended for use with `#[serde(with = "...")]` on fields of type
     /// `surrealdb::RecordId`. It serializes only the key portion (the part after the table
-    /// separator) as a JSON string — akin to tradtional SQL IDs where only the numeric or
+    /// separator) as a JSON string — akin to traditional SQL IDs where only the numeric or
     /// key portion is stored or referenced.
     pub fn serialize<S>(id: &surrealdb::RecordId, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -80,5 +124,30 @@ pub mod record_id_naked {
     {
         let naked_id = id.key().to_string();
         serializer.serialize_str(&naked_id)
+    }
+
+    /// Serialize an `Option<surrealdb::RecordId>` as the naked key (key only).
+    ///
+    /// Intended for use with `#[serde(with = "...")]` on fields of type
+    /// `Option<surrealdb::RecordId>`. When the option is `Some`, only the key portion
+    /// (the part after the table separator) is serialized as a JSON string (for example:
+    /// `"abc123"`). When the option is `None`, a JSON `null` is emitted.
+    ///
+    /// This shape is useful when you want IDs to resemble single-column identifiers,
+    /// akin to traditional SQL IDs.
+    pub fn serialize_opt<S>(
+        id: &Option<surrealdb::RecordId>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match id {
+            Some(record_id) => {
+                let naked_id = record_id.key().to_string();
+                serializer.serialize_str(&naked_id)
+            }
+            None => serializer.serialize_none(),
+        }
     }
 }

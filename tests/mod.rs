@@ -45,6 +45,75 @@ fn test_record_id_naked_serialize() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[derive(Serialize, Deserialize)]
+struct ContainerFullOpt {
+    #[serde(
+        serialize_with = "atopio_extra::record_id_full::serialize_opt",
+        deserialize_with = "atopio_extra::record_id_full::deserialize_opt"
+    )]
+    id: Option<surrealdb::RecordId>,
+}
+
+#[derive(Serialize)]
+struct ContainerNakedOptSer {
+    #[serde(serialize_with = "atopio_extra::record_id_naked::serialize_opt")]
+    id: Option<surrealdb::RecordId>,
+}
+
+#[test]
+fn test_record_id_full_opt_some() -> Result<(), Box<dyn std::error::Error>> {
+    let id = surrealdb::RecordId::from_str("user:opt123")?;
+    let c = ContainerFullOpt {
+        id: Some(id.clone()),
+    };
+
+    let s = serde_json::to_string(&c)?;
+    assert_eq!(s, format!("{{\"id\":\"{}\"}}", id.to_string()));
+
+    let parsed: ContainerFullOpt = serde_json::from_str(&s)?;
+    assert!(parsed.id.is_some());
+    assert_eq!(parsed.id.unwrap().to_string(), id.to_string());
+
+    Ok(())
+}
+
+#[test]
+fn test_record_id_full_opt_none() -> Result<(), Box<dyn std::error::Error>> {
+    let c = ContainerFullOpt { id: None };
+
+    let s = serde_json::to_string(&c)?;
+    assert_eq!(s, "{\"id\":null}");
+
+    let parsed: ContainerFullOpt = serde_json::from_str(&s)?;
+    assert!(parsed.id.is_none());
+
+    Ok(())
+}
+
+#[test]
+fn test_record_id_naked_opt_some_serialize() -> Result<(), Box<dyn std::error::Error>> {
+    let id = surrealdb::RecordId::from_str("user:naked1")?;
+    let c = ContainerNakedOptSer {
+        id: Some(id.clone()),
+    };
+
+    let s = serde_json::to_string(&c)?;
+    let expected_key = id.key().to_string();
+    assert_eq!(s, format!("{{\"id\":\"{}\"}}", expected_key));
+
+    Ok(())
+}
+
+#[test]
+fn test_record_id_naked_opt_none_serialize() -> Result<(), Box<dyn std::error::Error>> {
+    let c = ContainerNakedOptSer { id: None };
+
+    let s = serde_json::to_string(&c)?;
+    assert_eq!(s, "{\"id\":null}");
+
+    Ok(())
+}
+
 #[test]
 fn test_decode_payload_insecurely_success() -> Result<(), Box<dyn std::error::Error>> {
     let claims = types::SurrealJWTClaims {
